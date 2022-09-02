@@ -9,7 +9,10 @@ interface ERC721Interface {
 }
 
 contract NFP {
-    mapping(string => DataTypes.NFTInfo) public nftsRegistered;
+    mapping(string => DataTypes.NFTInfo) public nfcsRegistered;
+
+    event NFCPrinted(string nfcTag, DataTypes.NFTInfo nftInfo);
+    event NFCStatusChanged(string nfcTag, bool isNFCActive);
 
     constructor() {
     }
@@ -20,7 +23,7 @@ contract NFP {
         _;
     }
 
-    function printNFT(string memory _nfcTag, address _nftAddres, uint256 _nftId)
+    function printNFC(string memory _nfcTag, address _nftAddres, uint256 _nftId)
         public isOwnerOfNft(_nftAddres, _nftId)
     {
         DataTypes.NFTInfo memory newNFT = DataTypes.NFTInfo({
@@ -28,6 +31,17 @@ contract NFP {
             nftId: _nftId,
             isActive: false
         });
-        nftsRegistered[_nfcTag] = newNFT;
+        nfcsRegistered[_nfcTag] = newNFT;
+        emit NFCPrinted(_nfcTag, newNFT);
     }
+
+    function getNFCStatus(string memory _nfcTag) public view returns(bool) {
+        return nfcsRegistered[_nfcTag].isActive;
+    }
+
+    function changeNFCStatus(string memory _nfcTag, address _nftAddres, uint256 _nftId)
+        public isOwnerOfNft(_nftAddres, _nftId) {
+            nfcsRegistered[_nfcTag].isActive = !nfcsRegistered[_nfcTag].isActive;
+            emit NFCStatusChanged(_nfcTag, nfcsRegistered[_nfcTag].isActive);
+        }
 }
