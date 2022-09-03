@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -13,14 +14,17 @@ interface ERC721Interface {
     function tokenURI(uint256 _tokenId) external view returns (string memory);
 }
 
-contract NFP {
+contract NFP is Ownable {
     mapping(string => DataTypes.NFTInfo) public nfcsRegistered;
+    uint public printingCost = 0.0001 ether;
 
     using Counters for Counters.Counter;
     Counters.Counter private _nfcId;
 
     event NFCPrinted(string nfcTag, DataTypes.NFTInfo nftInfo);
     event NFCStatusChanged(string nfcTag, DataTypes.NFTInfo nftInfo);
+    event NFCDestroyed(string nfcTag, DataTypes.NFTInfo nftInfo);
+    event NFCPriceChanged(uint newPrice, uint256 updateTime);
 
     constructor() {
     }
@@ -31,9 +35,18 @@ contract NFP {
         _;
     }
 
+    function withdraw() public onlyOwner {
+        uint amount = address(this).balance;
+        address platformOwner = owner();
+
+        (bool success, ) = platformOwner.call{value: amount}("");
+        require(success, "Failed to send Ether");
+    }
+
     function printNFC(address _nftAddress, uint256 _nftId)
-        public isOwnerOfNft(_nftAddress, _nftId)
+        public payable isOwnerOfNft(_nftAddress, _nftId)
     {
+        require(msg.value >= printingCost, "Value is not correct"); 
         ERC721Interface collectionToCheck = ERC721Interface(_nftAddress);
         uint256 newNfcId = _nfcId.current();
         string memory titleOfNft = collectionToCheck.name();
@@ -60,6 +73,7 @@ contract NFP {
 
     function activateNFC(string memory _nfcTag, address _nftAddress, uint256 _nftId)
         public isOwnerOfNft(_nftAddress, _nftId) {
+            require(nfcsRegistered[_nfcTag].isDestroyed == false, "NFC is destroyed");
             if (nfcsRegistered[_nfcTag].isActive == true) {
                 revert("NFC already activated!");
             }
@@ -70,11 +84,27 @@ contract NFP {
 
     function deactivateNFC(string memory _nfcTag, address _nftAddress, uint256 _nftId)
         public isOwnerOfNft(_nftAddress, _nftId) {
+            require(nfcsRegistered[_nfcTag].isDestroyed == false, "NFC is destroyed");
             if (nfcsRegistered[_nfcTag].isActive == false) {
                 revert("NFC already deactivated!");
             }
             nfcsRegistered[_nfcTag].isActive = false;
             nfcsRegistered[_nfcTag].lastUpdated = block.timestamp;
             emit NFCStatusChanged(_nfcTag, nfcsRegistered[_nfcTag]);
+        }
+
+    function destroyNFC(string memory _nfcTag, address _nftAddress, uint256 _nftId)
+        public isOwnerOfNft(_nftAddress, _nftId) {
+            if (nfcsRegistered[_nfcTag].isDestroyed == true) {
+                revert("NFC already destroyed!");
+            }
+            nfcsRegistered[_nfcTag].isDestroyed = false;
+            nfcsRegistered[_nfcTag].lastUpdated = block.timestamp;
+            emit NFCDestroyed(_nfcTag, nfcsRegistered[_nfcTag]);
+        }
+
+        function setPrintingCost(uint _newPritingCost) public onlyOwner {
+            printingCost = _newPritingCost;
+            emit NFCPriceChanged(printingCost, block.timestamp);
         }
 }
