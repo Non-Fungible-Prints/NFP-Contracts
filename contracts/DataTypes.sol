@@ -4,8 +4,12 @@ pragma solidity ^0.8.0;
 
 library DataTypes {
     struct NFTInfo {
-        address nftAddres;
+        address nftAddress;
         uint256 nftId;
         bool isActive;
+        bool isDestroyed;
+        string nftName;
+        string nftUri;
+        uint256 lastUpdated;
     }
 }
