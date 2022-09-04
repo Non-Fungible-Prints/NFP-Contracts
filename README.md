@@ -1,5 +1,6 @@
 <h1>
 <p align="center">
+<img src="https://avatars.githubusercontent.com/u/112724665?s=200&v=4" width="150" height="150">
   <br>Non Fungible Prints
 </h1>
   <p align="center">
