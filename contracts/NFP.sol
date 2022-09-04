@@ -21,7 +21,7 @@ contract NFP is Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _nfcId;
 
-    event NFCPrinted(string nfcTag, DataTypes.NFTInfo nftInfo);
+    event NFCPrinted(string nfcTag, DataTypes.NFTInfo nftInfo, address nftOwnerAddress);
     event NFCStatusChanged(string nfcTag, DataTypes.NFTInfo nftInfo);
     event NFCDestroyed(string nfcTag, DataTypes.NFTInfo nftInfo);
     event NFCPriceChanged(uint newPrice, uint256 updateTime);
@@ -63,7 +63,7 @@ contract NFP is Ownable {
             lastUpdated: block.timestamp
         });
         nfcsRegistered[nfcTag] = newNFT;
-        emit NFCPrinted(nfcTag, newNFT);
+        emit NFCPrinted(nfcTag, newNFT, msg.sender);
         _nfcId.increment();
     }
 
@@ -71,24 +71,19 @@ contract NFP is Ownable {
         return nfcsRegistered[_nfcTag].isActive;
     }
 
-    function activateNFC(string memory _nfcTag, address _nftAddress, uint256 _nftId)
+    function changeNFCState(string memory _nfcTag, address _nftAddress, uint256 _nftId)
         public isOwnerOfNft(_nftAddress, _nftId) {
             require(nfcsRegistered[_nfcTag].isDestroyed == false, "NFC is destroyed");
-            if (nfcsRegistered[_nfcTag].isActive == true) {
-                revert("NFC already activated!");
+            bool currentNFCState = nfcsRegistered[_nfcTag].isActive;
+            
+            if (currentNFCState == true) {
+                nfcsRegistered[_nfcTag].isActive = false;
             }
-            nfcsRegistered[_nfcTag].isActive = true;
-            nfcsRegistered[_nfcTag].lastUpdated = block.timestamp;
-            emit NFCStatusChanged(_nfcTag, nfcsRegistered[_nfcTag]);
-        }
 
-    function deactivateNFC(string memory _nfcTag, address _nftAddress, uint256 _nftId)
-        public isOwnerOfNft(_nftAddress, _nftId) {
-            require(nfcsRegistered[_nfcTag].isDestroyed == false, "NFC is destroyed");
-            if (nfcsRegistered[_nfcTag].isActive == false) {
-                revert("NFC already deactivated!");
+            if (currentNFCState == false) {
+                nfcsRegistered[_nfcTag].isActive = true;
             }
-            nfcsRegistered[_nfcTag].isActive = false;
+            
             nfcsRegistered[_nfcTag].lastUpdated = block.timestamp;
             emit NFCStatusChanged(_nfcTag, nfcsRegistered[_nfcTag]);
         }
